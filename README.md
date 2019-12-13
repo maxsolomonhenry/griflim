@@ -21,11 +21,7 @@ stft.m --> accepts a mono signal x, a user-provided window, and a specified hop 
 Thank you for your interest.
 
 // Max Henry
-
 // Department of Music Technology
-
 // McGill University
-
 // Montreal, Qc
-
 // December 13, 2019.
