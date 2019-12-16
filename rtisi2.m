@@ -71,10 +71,15 @@ for curFrame = 1:numFrames
     for i = (1:numIts)
         fftbuf = fftbuf*0;
         
-        % grab section of the lookahead buffer to recalculate phase
-        newphasesource = outputFrames((fftS:fftE),curFrame)';
-        fftbuf(fftS:fftE) = newphasesource;
-        newPhasefft = fft(fftshift(fftbuf));
+        if curFrame == 1
+            % generate random phase for first frame
+            newPhasefft = exp(j*2*pi*rand(fftLength, 1))';
+        else
+            % grab section of the lookahead buffer to recalculate phase
+            newphasesource = outputFrames((fftS:fftE),curFrame)';
+            fftbuf(fftS:fftE) = newphasesource;
+            newPhasefft = fft(fftshift(fftbuf));
+        end
         
         % "magnitude-constrained" phase update
         newPhaseMagfft = max(newPhasefft, epsilon) ...
