@@ -36,7 +36,7 @@ OL = 4;
 windowSize = floor(fftLength/2);
 hop = floor(windowSize/OL);
 
-% generate synthesis/analysis window and asymetrical window
+% generate synthesis/analysis window
 window = glimwin(windowSize, OL);
 
 % initialize output/calculation buffers
@@ -60,7 +60,7 @@ for curFrame = 1:numFrames
     
     % add tail of prev frame into current frame, and rewindow
     if curFrame > 1
-        prevFrame = window .* outputFrames((fftS:fftE), curFrame - 1)';     % window prev frame
+        prevFrame = outputFrames((fftS:fftE), curFrame - 1)';               % window prev frame
         prevFrameContribution = [prevFrame(hop+1:end) zeros(1, hop)];       % extract the tail that overlaps current frame
         withPrevFrameContr = window .* ...                                  % combine with current frame and window
             (prevFrameContribution + outputFrames((fftS:fftE), curFrame)');
@@ -73,7 +73,7 @@ for curFrame = 1:numFrames
         
         % grab section of the lookahead buffer to recalculate phase
         newphasesource = outputFrames((fftS:fftE),curFrame)';
-        fftbuf(fftS:fftE) = window .* newphasesource;
+        fftbuf(fftS:fftE) = newphasesource;
         newPhasefft = fft(fftshift(fftbuf));
         
         % "magnitude-constrained" phase update
@@ -82,14 +82,14 @@ for curFrame = 1:numFrames
         
         % place updated frame in outputFrames
         updatedPreWindow = fftshift(real(ifft(newPhaseMagfft)));
-        outputFrames((fftS:fftE),curFrame) = window .* updatedPreWindow(fftS:fftE);
+        outputFrames((fftS:fftE),curFrame) = updatedPreWindow(fftS:fftE);
         
         % grab signal from center and add to the sum buffer
         newframe = outputFrames((fftS:fftE),curFrame)';
         
-        % re-add tail of prev frame into curFrame and rewindow
+        % add tail of prev frame into curFrame and rewindow
         if curFrame > 1
-            prevFrame = window .* outputFrames((fftS:fftE), curFrame - 1)';
+            prevFrame = outputFrames((fftS:fftE), curFrame - 1)';
             prevFrameContribution = [prevFrame(hop+1:end) zeros(1, hop)];
             withPrevFrameContr = window .* ...
                 (prevFrameContribution + outputFrames((fftS:fftE), curFrame)');
