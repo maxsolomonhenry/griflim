@@ -16,13 +16,13 @@ function X = stft(x, window, hop)
 % Check for proper orientation of window vector
 [r, c] = size(window);
 if r > c
-    window = window';
+    window = window.';
 end
 
 % Likewise for the signal x
 [r, c] = size(x);
 if r > c
-    x = x';
+    x = x.';
 end
 
 windowSize = length(window);
