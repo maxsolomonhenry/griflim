@@ -36,7 +36,7 @@ OL = 4;
 windowSize = floor(fftLength/2);
 hop = floor(windowSize/OL);
 
-% generate synthesis/analysis window and asymetrical window
+% generate synthesis/analysis window
 window = glimwin(windowSize, OL);
 
 % initialize output/calculation buffers
