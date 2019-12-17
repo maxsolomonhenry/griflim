@@ -41,8 +41,10 @@ window = glimwin(windowSize, OL);
 
 % initialize output/calculation buffers
 y = zeros(1, numFrames*hop + windowSize - 1);       % output
-outputFrames = zeros(fftLength, numFrames);         % output frames, accessed throughout synthesis
-fftbuf = zeros(1, fftLength);                       % fft buffer
+prevFrame = zeros(1, windowSize);
+newFrame = zeros(1, windowSize);
+prevFrameBuf = zeros(1, fftLength);
+newFrameBuf = zeros(1, fftLength);
 
 % init/define pointers
 fftS = floor(windowSize/2);
@@ -58,43 +60,27 @@ for curFrame = 1:numFrames
     wavS = hop * (curFrame - 1) + 1;
     wavE = wavS + windowSize - 1;
     
-    % add tail of prev frame into current frame, and rewindow
-    if curFrame > 1
-        prevFrame = outputFrames((fftS:fftE), curFrame - 1)';               % window prev frame
-        prevFrameContribution = [prevFrame(hop+1:end) zeros(1, hop)];       % extract the tail that overlaps current frame
-        withPrevFrameContr = window .* ...                                  % combine with current frame and window
-            (prevFrameContribution + outputFrames((fftS:fftE), curFrame)');
-        
-        outputFrames((fftS:fftE), curFrame) = withPrevFrameContr;           % store overlapped frame back in outputFrames
-    end
+    % prepare contribution of previous frames
+    prevFrame = y(wavS:wavE) .* window;
+    prevFrameBuf(fftS:fftE) = prevFrame;
     
     for i = (1:numIts)
-        fftbuf = fftbuf*0;
+        % generate spectrum of what is currently in output signal frame
+        prevFrameSpectrum = fft(fftshift(prevFrameBuf));
         
-        % grab section of the lookahead buffer to recalculate phase
-        newphasesource = outputFrames((fftS:fftE),curFrame)';
-        fftbuf(fftS:fftE) = window .* newphasesource;
-        newPhasefft = fft(fftshift(fftbuf));
+        % replace magnitude of this spectrum with goal magnitude
+        updateSpectrum = goalMag(:,curFrame).' .* max(prevFrameSpectrum, epsilon) ./ max(abs(prevFrameSpectrum), epsilon);
         
-        % "magnitude-constrained" phase update
-        newPhaseMagfft = max(newPhasefft, epsilon) ...
-            ./ max(abs(newPhasefft), epsilon) .* goalMag(:, curFrame)';
+        %ifft to retrieve new time signal
+        newFrameBuf = fftshift(ifft(updateSpectrum));
+        newFrame = newFrameBuf(fftS:fftE);
         
-        % place updated frame in outputFrames
-        updatedPreWindow = fftshift(real(ifft(newPhaseMagfft)));
-        outputFrames((fftS:fftE),curFrame) = window .* updatedPreWindow(fftS:fftE);
-        
-        % grab signal from center and add to the sum buffer
-        newestFrame = outputFrames((fftS:fftE),curFrame)';
-        
-        % re-add tail of prev frame into curFrame and rewindow
-        if curFrame > 1
-            withPrevFrameContr = window .* ...
-                (prevFrameContribution + newestFrame);
-            
-            outputFrames((fftS:fftE), curFrame) = withPrevFrameContr;
-        end
+        % add to prevFrameBuf in case of iteration
+        prevFrameBuf = prevFrameBuf * 0;
+        prevFrameBuf(fftS:fftE) = window .* (prevFrame + newFrame);
     end
-    y(wavS:wavE) = y(wavS:wavE) + outputFrames((fftS:fftE),curFrame)';
+    
+    % overlap add to output signal
+    y(wavS:wavE) = y(wavS:wavE) + newFrame;
 end
 end
