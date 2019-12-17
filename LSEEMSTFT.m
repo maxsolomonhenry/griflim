@@ -36,7 +36,7 @@ end
 
 [r c] = size(window);
 if r > c
-    window = window';
+    window = window.';
 end
 
 [fftLength, numFrames] = size(X);
@@ -64,7 +64,7 @@ for curFrame = (1:numFrames)
             .* exp(j*2*pi*rand(fftLength, 1));
     end
     
-    newframe = ifft(X(:, curFrame))';
+    newframe = ifft(X(:, curFrame)).';
     shiftframe = real(fftshift(newframe));
 
     % build up output signal by accumulating windowed frames
